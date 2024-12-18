@@ -1,6 +1,7 @@
 <?php
 require_once '../../config/Database.php';
 require_once '../../models/Appointment.php';
+require_once '../../models/User.php';
 include 'includes/header.php';
 
 $database = new Database();
@@ -126,6 +127,26 @@ $appointments = $appointment->getUserAppointments($_SESSION['user_id']);
                         <p><strong>Cliente:</strong> <?php echo htmlspecialchars($apt['client_name']); ?></p>
                         <p><strong>Email:</strong> <?php echo htmlspecialchars($apt['client_email']); ?></p>
                         <p><strong>Telefone:</strong> <?php echo htmlspecialchars($apt['client_phone']); ?></p>
+                        
+                        <?php if (!empty($apt['client_phone'])): ?>
+                            <a href="<?php 
+                                $message = "Olá " . $apt['client_name'] . "! ";
+                                $message .= "Recebi seu agendamento para " . $apt['service_name'];
+                                $message .= " no dia " . date('d/m/Y', strtotime($apt['appointment_date']));
+                                $message .= " às " . date('H:i', strtotime($apt['start_time'])) . ".";
+                                
+                                $clientPhone = preg_replace("/[^0-9]/", "", $apt['client_phone']);
+                                
+                                echo "https://wa.me/55" . $clientPhone . "?text=" . urlencode($message);
+                            ?>" 
+                            target="_blank" 
+                            class="btn btn-small btn-whatsapp">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="white" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                                </svg>
+                                Enviar Mensagem
+                            </a>
+                        <?php endif; ?>
                     </div>
                     <div class="schedule-info">
                         <p><strong>Data:</strong> <?php echo date('d/m/Y', strtotime($apt['appointment_date'])); ?></p>

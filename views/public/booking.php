@@ -26,7 +26,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $end_time = date('H:i', strtotime("+{$serviceData['duration']} minutes", strtotime($_POST['time'])));
     
     // Verificar disponibilidade antes de criar o agendamento
-    if ($appointment->checkAvailability($serviceData['user_id'], $_POST['date'], $start_time, $end_time)) {
+    if ($appointment->checkAvailability(
+        $serviceData['user_id'], 
+        $_POST['date'], 
+        $start_time, 
+        $end_time,
+        $serviceData['id']  // Adicionado service_id para verificar capacidade
+    )) {
         $appointmentData = [
             'service_id' => $serviceData['id'],
             'user_id' => $serviceData['user_id'],
@@ -68,6 +74,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <p><strong>Preço:</strong> R$ <?php echo number_format($serviceData['price'], 2, ',', '.'); ?></p>
                 <?php if ($serviceData['description']): ?>
                     <p><strong>Descrição:</strong> <?php echo htmlspecialchars($serviceData['description']); ?></p>
+                <?php endif; ?>
+                <?php if ($serviceData['concurrent_capacity'] > 1): ?>
+                    <p><strong>Capacidade:</strong> <?php echo $serviceData['concurrent_capacity']; ?> atendimentos simultâneos</p>
                 <?php endif; ?>
             </div>
 
@@ -119,9 +128,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         const serviceId = <?php echo $serviceData['id']; ?>;
         const duration = <?php echo $serviceData['duration']; ?>;
         
-        // Fazer requisição AJAX para buscar horários disponíveis
         try {
-            const response = await fetch(`get_available_times.php?date=${date}&user_id=${userId}&duration=${duration}`);
+            const response = await fetch(`get_available_times.php?date=${date}&user_id=${userId}&duration=${duration}&service_id=${serviceId}`);
             const availableSlots = await response.json();
             
             const timeSelect = document.getElementById('time');

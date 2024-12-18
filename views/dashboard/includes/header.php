@@ -29,6 +29,7 @@ if (!isset($_SESSION['user_id'])) {
                 <li><a href="services.php">Meus Serviços</a></li>
                 <li><a href="appointments.php">Agendamentos</a></li>
                 <li><a href="availability.php">Disponibilidade</a></li>
+                <li><a href="settings.php">Configurações</a></li>
                 <li><a href="../../logout.php">Sair</a></li>
             </ul>
         </nav>

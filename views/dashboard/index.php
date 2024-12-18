@@ -16,9 +16,8 @@ $services = $service->getUserServices($_SESSION['user_id']);
 $total_services = count($services);
 $total_appointments = count($upcoming_appointments);
 
-// Gerar link público para compartilhar - Ajustado para usar o caminho completo
+// Gerar link público para compartilhar
 $public_link = "http://" . $_SERVER['HTTP_HOST'] . "/agendamento/views/public/services.php?user=" . $_SESSION['user_id'];
-error_log('Link gerado: ' . $public_link); // Debug
 ?>
 
 <div class="dashboard-header">
@@ -56,15 +55,27 @@ error_log('Link gerado: ' . $public_link); // Debug
         <div class="appointments-list">
             <?php foreach(array_slice($upcoming_appointments, 0, 5) as $appointment): ?>
                 <div class="appointment-card">
-                    <div class="appointment-info">
+                    <div class="service-info">
                         <h4><?php echo htmlspecialchars($appointment['service_name']); ?></h4>
+                    </div>
+                    <div class="client-info">
                         <p>Cliente: <?php echo htmlspecialchars($appointment['client_name']); ?></p>
                         <p>Data: <?php echo date('d/m/Y', strtotime($appointment['appointment_date'])); ?></p>
                         <p>Horário: <?php echo date('H:i', strtotime($appointment['start_time'])); ?></p>
                     </div>
                     <div class="appointment-status">
                         <span class="status-badge <?php echo $appointment['status']; ?>">
-                            <?php echo ucfirst($appointment['status']); ?>
+                            <?php 
+                            $statusLabels = [
+                                'pending' => 'Pendente',
+                                'confirmed' => 'Confirmado',
+                                'in_progress' => 'Em Andamento',
+                                'completed' => 'Finalizado',
+                                'no_show' => 'Não Compareceu',
+                                'cancelled' => 'Cancelado'
+                            ];
+                            echo $statusLabels[$appointment['status']] ?? ucfirst($appointment['status']); 
+                            ?>
                         </span>
                     </div>
                 </div>

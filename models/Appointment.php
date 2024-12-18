@@ -122,35 +122,20 @@ class Appointment {
         }
     }
 
-    public function checkAvailability($user_id, $date, $start_time, $end_time) {
+    public function checkAvailability($user_id, $date, $start_time, $end_time, $service_id) {
         try {
-            // 1. Verificar se é um dia/horário configurado como disponível
-            $dayOfWeek = date('w', strtotime($date)); // 0 (domingo) a 6 (sábado)
-            
-            $availQuery = "SELECT COUNT(*) as count FROM availability 
-                          WHERE user_id = :user_id 
-                          AND day_of_week = :day_of_week
-                          AND :start_time >= start_time 
-                          AND :end_time <= end_time";
-            
-            $availStmt = $this->conn->prepare($availQuery);
-            $availStmt->bindParam(":user_id", $user_id);
-            $availStmt->bindParam(":day_of_week", $dayOfWeek);
-            $availStmt->bindParam(":start_time", $start_time);
-            $availStmt->bindParam(":end_time", $end_time);
-            $availStmt->execute();
-            
-            $availResult = $availStmt->fetch(PDO::FETCH_ASSOC);
-            
-            // Se não encontrou disponibilidade configurada, retorna false
-            if ($availResult['count'] == 0) {
-                return false;
-            }
-
-            // 2. Verificar se não há conflito com outros agendamentos
+            // Primeiro verifica a capacidade do serviço
+            $serviceQuery = "SELECT concurrent_capacity FROM services WHERE id = :service_id";
+            $serviceStmt = $this->conn->prepare($serviceQuery);
+            $serviceStmt->bindParam(":service_id", $service_id);
+            $serviceStmt->execute();
+            $service = $serviceStmt->fetch(PDO::FETCH_ASSOC);
+            $capacity = $service['concurrent_capacity'];
+    
+            // Depois conta quantos agendamentos já existem neste horário
             $query = "SELECT COUNT(*) as count
                     FROM " . $this->table . " a
-                    WHERE a.user_id = :user_id
+                    WHERE a.service_id = :service_id
                     AND a.appointment_date = :date
                     AND a.status != 'cancelled'
                     AND (
@@ -158,20 +143,18 @@ class Appointment {
                         OR (a.start_time < :end_time AND a.end_time >= :end_time)
                         OR (:start_time <= a.start_time AND :end_time >= a.end_time)
                     )";
-
+    
             $stmt = $this->conn->prepare($query);
-            
-            $stmt->bindParam(":user_id", $user_id);
+            $stmt->bindParam(":service_id", $service_id);
             $stmt->bindParam(":date", $date);
             $stmt->bindParam(":start_time", $start_time);
             $stmt->bindParam(":end_time", $end_time);
-            
             $stmt->execute();
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
-
-            // Retorna true se não houver conflitos
-            return $result['count'] == 0;
-
+    
+            // Retorna true se ainda houver capacidade disponível
+            return $result['count'] < $capacity;
+    
         } catch (PDOException $e) {
             error_log("Erro ao verificar disponibilidade: " . $e->getMessage());
             return false;

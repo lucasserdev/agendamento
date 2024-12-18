@@ -19,13 +19,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_service'])) {
         $description = trim($_POST['description']);
         $duration = (int)$_POST['duration'];
         $price = (float)str_replace(',', '.', $_POST['price']);
+        $concurrent_capacity = (int)$_POST['concurrent_capacity'];
         
         $serviceData = [
             'user_id' => $_SESSION['user_id'],
             'name' => $name,
             'description' => $description,
             'duration' => $duration,
-            'price' => $price
+            'price' => $price,
+            'concurrent_capacity' => $concurrent_capacity
         ];
 
         // Debug dos dados
@@ -159,6 +161,12 @@ $services = $service->getUserServices($_SESSION['user_id']);
                 <label for="price">Preço (R$)</label>
                 <input type="text" id="price" name="price" required 
                        pattern="^\d*[0-9](|,\d{0,2}|.\d{0,2}|\d*[0-9])(|,\d{0,2}|.\d{0,2})$">
+            </div>
+            <div class="form-group">
+                <label for="concurrent_capacity">Atendimentos Simultâneos</label>
+                <input type="number" id="concurrent_capacity" name="concurrent_capacity" 
+                    min="1" value="1" required>
+                <small>Quantos clientes podem ser atendidos ao mesmo tempo neste serviço</small>
             </div>
             <button type="submit" name="save_service" class="btn btn-primary">Salvar</button>
         </form>

@@ -49,4 +49,30 @@ class User {
             return false;
         }
     }
+
+    public function getUserData($id) {
+        try {
+            $query = "SELECT * FROM users WHERE id = :id";
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(":id", $id);
+            $stmt->execute();
+            return $stmt->fetch(PDO::FETCH_ASSOC);
+        } catch(PDOException $e) {
+            error_log("Erro ao buscar dados do usuário: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    public function updateWhatsapp($user_id, $whatsapp) {
+        try {
+            $query = "UPDATE users SET whatsapp = :whatsapp WHERE id = :id";
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(":whatsapp", $whatsapp);
+            $stmt->bindParam(":id", $user_id);
+            return $stmt->execute();
+        } catch(PDOException $e) {
+            error_log("Erro ao atualizar whatsapp: " . $e->getMessage());
+            return false;
+        }
+    }
 }
