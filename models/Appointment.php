@@ -124,36 +124,32 @@ class Appointment {
 
     public function checkAvailability($user_id, $date, $start_time, $end_time, $service_id) {
         try {
-            // Primeiro verifica a capacidade do serviço
+            // Primeiro, pegar a capacidade do serviço
             $serviceQuery = "SELECT concurrent_capacity FROM services WHERE id = :service_id";
             $serviceStmt = $this->conn->prepare($serviceQuery);
             $serviceStmt->bindParam(":service_id", $service_id);
             $serviceStmt->execute();
-            $service = $serviceStmt->fetch(PDO::FETCH_ASSOC);
-            $capacity = $service['concurrent_capacity'];
+            $serviceData = $serviceStmt->fetch(PDO::FETCH_ASSOC);
+            $maxCapacity = $serviceData['concurrent_capacity'];
     
-            // Depois conta quantos agendamentos já existem neste horário
-            $query = "SELECT COUNT(*) as count
-                    FROM " . $this->table . " a
-                    WHERE a.service_id = :service_id
-                    AND a.appointment_date = :date
-                    AND a.status != 'cancelled'
-                    AND (
-                        (a.start_time <= :start_time AND a.end_time > :start_time)
-                        OR (a.start_time < :end_time AND a.end_time >= :end_time)
-                        OR (:start_time <= a.start_time AND :end_time >= a.end_time)
-                    )";
+            // Depois, contar quantos agendamentos já existem neste horário
+            $query = "SELECT COUNT(*) as count 
+                     FROM " . $this->table . " 
+                     WHERE service_id = :service_id 
+                     AND appointment_date = :date 
+                     AND start_time = :start_time 
+                     AND status != 'cancelled'";
     
             $stmt = $this->conn->prepare($query);
             $stmt->bindParam(":service_id", $service_id);
             $stmt->bindParam(":date", $date);
             $stmt->bindParam(":start_time", $start_time);
-            $stmt->bindParam(":end_time", $end_time);
             $stmt->execute();
-            $result = $stmt->fetch(PDO::FETCH_ASSOC);
     
-            // Retorna true se ainda houver capacidade disponível
-            return $result['count'] < $capacity;
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            // Se o número de agendamentos for igual ou maior que a capacidade, retorna falso
+            return $result['count'] < $maxCapacity;
     
         } catch (PDOException $e) {
             error_log("Erro ao verificar disponibilidade: " . $e->getMessage());

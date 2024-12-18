@@ -127,17 +127,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         const userId = <?php echo $serviceData['user_id']; ?>;
         const serviceId = <?php echo $serviceData['id']; ?>;
         const duration = <?php echo $serviceData['duration']; ?>;
+        const capacity = <?php echo $serviceData['concurrent_capacity']; ?>;
         
         try {
-            const response = await fetch(`get_available_times.php?date=${date}&user_id=${userId}&duration=${duration}&service_id=${serviceId}`);
+            const response = await fetch(`get_available_times.php?date=${date}&user_id=${userId}&duration=${duration}&service_id=${serviceId}&capacity=${capacity}`);
             const availableSlots = await response.json();
             
             const timeSelect = document.getElementById('time');
             timeSelect.innerHTML = '<option value="">Selecione um horário</option>';
             
-            if (availableSlots.length === 0) {
-                timeSelect.innerHTML += '<option disabled>Nenhum horário disponível nesta data</option>';
+            if (!availableSlots || availableSlots.length === 0) {
+                timeSelect.innerHTML = '<option value="" disabled>Nenhum horário disponível nesta data</option>';
+                const alertDiv = document.createElement('div');
+                alertDiv.className = 'alert alert-danger';
+                alertDiv.textContent = 'Horário não disponível. Por favor, selecione outro horário.';
+                
+                // Remove alertas anteriores
+                const existingAlert = document.querySelector('.alert-danger');
+                if (existingAlert) {
+                    existingAlert.remove();
+                }
+                
+                timeSelect.parentNode.insertBefore(alertDiv, timeSelect);
             } else {
+                // Remove alerta de erro se existir
+                const existingAlert = document.querySelector('.alert-danger');
+                if (existingAlert) {
+                    existingAlert.remove();
+                }
+
                 availableSlots.forEach(slot => {
                     const option = document.createElement('option');
                     option.value = slot;
@@ -147,6 +165,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         } catch (error) {
             console.error('Erro ao buscar horários:', error);
+            timeSelect.innerHTML = '<option value="" disabled>Erro ao carregar horários</option>';
         }
     });
 

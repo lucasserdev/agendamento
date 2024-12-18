@@ -124,6 +124,9 @@ $services = $service->getUserServices($_SESSION['user_id']);
                 <div class="service-details">
                     <span>Duração: <?php echo $srv['duration']; ?> minutos</span>
                     <span>Preço: R$ <?php echo number_format($srv['price'], 2, ',', '.'); ?></span>
+                    <?php if ($srv['concurrent_capacity'] > 1): ?>
+                        <span>Capacidade: <?php echo $srv['concurrent_capacity']; ?> atendimentos simultâneos</span>
+                    <?php endif; ?>
                 </div>
                 <div class="service-link">
                     <small>Link para seus clientes acessarem todos os seus serviços:</small>
@@ -192,6 +195,7 @@ function editService(service) {
     document.getElementById("description").value = service.description;
     document.getElementById("duration").value = service.duration;
     document.getElementById("price").value = service.price.toString().replace('.', ',');
+    document.getElementById("concurrent_capacity").value = service.concurrent_capacity; // Nova linha
     modal.style.display = "block";
 }
 
