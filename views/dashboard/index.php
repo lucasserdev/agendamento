@@ -2,6 +2,7 @@
 require_once '../../config/Database.php';
 require_once '../../models/Appointment.php';
 require_once '../../models/Service.php';
+require_once '../../models/User.php';
 include 'includes/header.php';
 
 $database = new Database();
@@ -9,6 +10,7 @@ $db = $database->getConnection();
 
 $appointment = new Appointment($db);
 $service = new Service($db);
+$user = new User($db);
 
 $upcoming_appointments = $appointment->getUserAppointments($_SESSION['user_id']);
 $services = $service->getUserServices($_SESSION['user_id']);
@@ -18,11 +20,48 @@ $total_appointments = count($upcoming_appointments);
 
 // Gerar link público para compartilhar
 $public_link = "http://" . $_SERVER['HTTP_HOST'] . "/agendamento/views/public/services.php?user=" . $_SESSION['user_id'];
+
+// Verificar dias até expiração do plano
+$daysLeft = $user->getDaysUntilExpiration($_SESSION['user_id']);
 ?>
 
 <div class="dashboard-header">
     <h2>Visão Geral</h2>
 </div>
+
+<?php if ($daysLeft !== null && $daysLeft > 0): ?>
+    <div style="margin: 20px 0; padding: 15px; 
+        <?php if ($daysLeft <= 3): ?>
+            background-color: #f8d7da; 
+            color: #721c24; 
+            border: 1px solid #f5c6cb;
+        <?php elseif ($daysLeft <= 10): ?>
+            background-color: #fff3cd; 
+            color: #856404; 
+            border: 1px solid #ffeeba;
+        <?php else: ?>
+            background-color: #d4edda; 
+            color: #155724; 
+            border: 1px solid #c3e6cb;
+        <?php endif; ?> 
+        border-radius: 4px;">
+        <strong>Aviso!</strong> 
+        <?php if ($daysLeft <= 3): ?>
+            Atenção! Seu plano expira em <?php echo $daysLeft; ?> dias. 
+        <?php else: ?>
+            Seu plano expira em <?php echo $daysLeft; ?> dias. 
+        <?php endif; ?>
+        <a href="plans.php" style="color: #0056b3; text-decoration: underline;">Alterar plano</a>
+    </div>
+<?php elseif ($daysLeft !== null && $daysLeft <= 0): ?>
+    <div style="margin: 20px 0; padding: 20px; background-color: #f8d7da; border: 2px solid #f5c6cb; border-radius: 4px;">
+        <h3 style="color: #721c24; margin-bottom: 10px;">Seu Plano Expirou!</h3>
+        <p style="color: #721c24; margin-bottom: 15px;">Para continuar utilizando todas as funcionalidades do sistema, escolha um novo plano.</p>
+        <a href="plans.php" class="btn btn-danger" style="background-color: #dc3545; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px; display: inline-block;">
+            Escolher Novo Plano
+        </a>
+    </div>
+<?php endif; ?>
 
 <div style="padding: 20px; background: #fff; margin: 20px 0; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
     <h3 style="margin-bottom: 15px; color: #2c3e50;">Seu Link de Agendamento</h3>
@@ -49,6 +88,7 @@ $public_link = "http://" . $_SERVER['HTTP_HOST'] . "/agendamento/views/public/se
     </div>
 </div>
 
+<?php if ($daysLeft === null || $daysLeft > 0): ?>
 <div class="dashboard-section">
     <h3>Próximos Agendamentos</h3>
     <?php if (!empty($upcoming_appointments)): ?>
@@ -85,6 +125,7 @@ $public_link = "http://" . $_SERVER['HTTP_HOST'] . "/agendamento/views/public/se
         <p class="no-data">Nenhum agendamento próximo.</p>
     <?php endif; ?>
 </div>
+<?php endif; ?>
 
 <script>
 function copyLink() {
@@ -96,7 +137,6 @@ function copyLink() {
             alert('Link copiado para a área de transferência!');
         });
     } catch (err) {
-        // Fallback para o método antigo se o clipboard API não funcionar
         document.execCommand('copy');
         alert('Link copiado para a área de transferência!');
     }

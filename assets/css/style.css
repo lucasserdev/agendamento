@@ -108,3 +108,40 @@ a {
 a:hover {
     text-decoration: underline;
 }
+
+
+.alert {
+    padding: 15px;
+    margin-bottom: 20px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+}
+
+.alert-danger {
+    color: #721c24;
+    background-color: #f8d7da;
+    border-color: #f5c6cb;
+}
+
+.alert-warning {
+    color: #856404;
+    background-color: #fff3cd;
+    border-color: #ffeeba;
+}
+
+.plan-expired-banner {
+    background-color: #f8d7da;
+    border-bottom: 1px solid #f5c6cb;
+    padding: 10px;
+    text-align: center;
+    color: #721c24;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+
+.plan-expired-banner a {
+    color: #721c24;
+    font-weight: bold;
+    text-decoration: underline;
+}

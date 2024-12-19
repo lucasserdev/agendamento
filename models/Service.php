@@ -10,6 +10,15 @@ class Service {
 
     public function create($data) {
         try {
+            // Verificar se usuário pode adicionar mais serviços
+            $user = new User($this->conn);
+            $user->setId($data['user_id']);
+            
+            if (!$user->canAddService()) {
+                $this->lastError = "Limite de serviços do plano atingido";
+                return false;
+            }
+    
             $query = "INSERT INTO " . $this->table . "
                     (user_id, name, description, duration, price, concurrent_capacity)
                     VALUES
@@ -31,6 +40,7 @@ class Service {
             
             return $stmt->execute();
         } catch(PDOException $e) {
+            $this->lastError = $e->getMessage();
             error_log("Erro ao criar serviço: " . $e->getMessage());
             return false;
         }
@@ -73,14 +83,25 @@ class Service {
     }
 
     public function delete($id) {
-        $query = "DELETE FROM " . $this->table . " WHERE id = :id";
-        $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(":id", $id);
-        return $stmt->execute();
+        try {
+            $query = "UPDATE " . $this->table . " 
+                     SET status = 'inactive' 
+                     WHERE id = :id AND user_id = :user_id";
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(":id", $id);
+            $stmt->bindParam(":user_id", $_SESSION['user_id']); // Adicionar segurança extra
+            return $stmt->execute();
+        } catch(PDOException $e) {
+            error_log("Erro ao deletar serviço: " . $e->getMessage());
+            return false;
+        }
     }
 
     public function getUserServices($user_id) {
-        $query = "SELECT * FROM " . $this->table . " WHERE user_id = :user_id ORDER BY name";
+        $query = "SELECT * FROM " . $this->table . " 
+                  WHERE user_id = :user_id 
+                  AND (status = 'active' OR status IS NULL) 
+                  ORDER BY name";
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(":user_id", $user_id);
         $stmt->execute();

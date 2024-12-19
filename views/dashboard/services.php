@@ -1,11 +1,20 @@
 <?php
 require_once '../../config/Database.php';
 require_once '../../models/Service.php';
+require_once '../../models/User.php';
 include 'includes/header.php';
 
 $database = new Database();
 $db = $database->getConnection();
 $service = new Service($db);
+$user = new User($db);
+$user->setId($_SESSION['user_id']);
+
+// Buscar informações do plano
+$planDetails = $user->getPlanDetails();
+$services = $service->getUserServices($_SESSION['user_id']);
+$currentServicesCount = count($services);
+$canAddService = $user->canAddService();
 
 // Debug para verificar se o POST está chegando
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -15,6 +24,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // Processar criação/atualização
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_service'])) {
     try {
+        // Verificar se é uma nova criação (sem service_id)
+        if (!isset($_POST['service_id']) || empty($_POST['service_id'])) {
+            // Verificar limite do plano
+            if (!$canAddService) {
+                $_SESSION['error'] = "Você atingiu o limite de serviços do seu plano atual.";
+                header("Location: services.php");
+                exit;
+            }
+        }
+
         $name = trim($_POST['name']);
         $description = trim($_POST['description']);
         $duration = (int)$_POST['duration'];
@@ -30,9 +49,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_service'])) {
             'concurrent_capacity' => $concurrent_capacity
         ];
 
-        // Debug dos dados
-        error_log('Dados do serviço: ' . print_r($serviceData, true));
-
         if (isset($_POST['service_id']) && !empty($_POST['service_id'])) {
             // Atualização
             $serviceData['id'] = $_POST['service_id'];
@@ -40,21 +56,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_service'])) {
                 $_SESSION['success'] = "Serviço atualizado com sucesso!";
             } else {
                 $_SESSION['error'] = "Erro ao atualizar serviço.";
-                error_log('Erro ao atualizar serviço: ' . print_r($service->getLastError(), true));
             }
         } else {
             // Criação
             if ($service->create($serviceData)) {
                 $_SESSION['success'] = "Serviço criado com sucesso!";
             } else {
-                $_SESSION['error'] = "Erro ao criar serviço.";
-                error_log('Erro ao criar serviço: ' . print_r($service->getLastError(), true));
+                $_SESSION['error'] = $service->getLastError() ?: "Erro ao criar serviço.";
             }
         }
         
     } catch (Exception $e) {
         $_SESSION['error'] = "Erro ao processar serviço: " . $e->getMessage();
-        error_log('Exceção ao processar serviço: ' . $e->getMessage());
     }
     
     header("Location: services.php");
@@ -65,9 +78,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_service'])) {
 if (isset($_POST['delete_service'])) {
     $id = $_POST['service_id'];
     if ($service->delete($id)) {
-        $_SESSION['success'] = "Serviço excluído com sucesso!";
+        $_SESSION['success'] = "Serviço inativado com sucesso!";
     } else {
-        $_SESSION['error'] = "Erro ao excluir serviço.";
+        $_SESSION['error'] = "Erro ao inativar serviço.";
     }
     header("Location: services.php");
     exit;
@@ -79,7 +92,9 @@ $services = $service->getUserServices($_SESSION['user_id']);
 
 <div class="dashboard-header">
     <h2>Gerenciar Serviços</h2>
-    <button class="btn btn-primary" onclick="openServiceModal()">Novo Serviço</button>
+    <?php if ($canAddService): ?>
+        <button class="btn btn-primary" onclick="openServiceModal()">Novo Serviço</button>
+    <?php endif; ?>
 </div>
 
 <?php if (isset($_SESSION['success'])): ?>
@@ -99,6 +114,23 @@ $services = $service->getUserServices($_SESSION['user_id']);
         ?>
     </div>
 <?php endif; ?>
+
+<div class="plan-status">
+    <div class="plan-info">
+        <h3>Seu Plano: <?php echo htmlspecialchars($planDetails['name'] ?? 'Não definido'); ?></h3>
+        <?php if ($planDetails['max_services'] === -1): ?>
+            <p>Você pode criar serviços ilimitados</p>
+        <?php else: ?>
+            <p>Serviços: <?php echo $currentServicesCount; ?> de <?php echo $planDetails['max_services']; ?> utilizados</p>
+            <?php if (!$canAddService): ?>
+                <div class="plan-upgrade-alert">
+                    <p>Você atingiu o limite de serviços do seu plano!</p>
+                    <a href="plans.php" class="btn btn-upgrade">Fazer Upgrade</a>
+                </div>
+            <?php endif; ?>
+        <?php endif; ?>
+    </div>
+</div>
 
 <div class="services-grid">
     <?php if (!empty($services)): ?>

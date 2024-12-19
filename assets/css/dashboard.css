@@ -640,3 +640,49 @@ input[type="time"] {
     height: 16px;
 }
 
+.plan-status {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    border: 1px solid #e9ecef;
+}
+
+.plan-info h3 {
+    margin: 0 0 10px 0;
+    color: #2c3e50;
+}
+
+.plan-info p {
+    margin: 5px 0;
+    color: #6c757d;
+}
+
+.plan-upgrade-alert {
+    margin-top: 10px;
+    padding: 10px;
+    background-color: #fff3cd;
+    border: 1px solid #ffeeba;
+    border-radius: 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.plan-upgrade-alert p {
+    margin: 0;
+    color: #856404;
+}
+
+.btn-upgrade {
+    background-color: #007bff;
+    color: white;
+    padding: 5px 15px;
+    border-radius: 4px;
+    text-decoration: none;
+}
+
+.btn-upgrade:hover {
+    background-color: #0056b3;
+}
+
