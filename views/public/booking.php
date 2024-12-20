@@ -25,13 +25,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $start_time = $_POST['time'];
     $end_time = date('H:i', strtotime("+{$serviceData['duration']} minutes", strtotime($_POST['time'])));
     
-    // Verificar disponibilidade antes de criar o agendamento
     if ($appointment->checkAvailability(
         $serviceData['user_id'], 
         $_POST['date'], 
         $start_time, 
         $end_time,
-        $serviceData['id']  // Adicionado service_id para verificar capacidade
+        $serviceData['id']
     )) {
         $appointmentData = [
             'service_id' => $serviceData['id'],
@@ -65,122 +64,288 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link rel="stylesheet" href="../../assets/css/booking.css">
 </head>
 <body>
-    <div class="container">
-        <div class="booking-form">
-            <h2>Agendar <?php echo htmlspecialchars($serviceData['name']); ?></h2>
+    <div class="booking-container">
+        <h2>Agendar <?php echo htmlspecialchars($serviceData['name']); ?></h2>
+
+        <div class="service-info">
+            <p><strong>Duração:</strong> <?php echo $serviceData['duration']; ?> minutos</p>
+            <p><strong>Preço:</strong> R$ <?php echo number_format($serviceData['price'], 2, ',', '.'); ?></p>
+            <?php if ($serviceData['description']): ?>
+                <p><strong>Descrição:</strong> <?php echo htmlspecialchars($serviceData['description']); ?></p>
+            <?php endif; ?>
+        </div>
+
+        <!-- <?php if (isset($success)): ?>
+            <div class="alert alert-success"><?php echo $success; ?></div>
+        <?php endif; ?>
+
+        <?php if (isset($error)): ?>
+            <div class="alert alert-danger"><?php echo $error; ?></div>
+        <?php endif; ?> -->
+
+        <div class="schedule-section">
+            <h3>Selecione o dia do atendimento</h3>
+
+            <div class="calendar-navigation">
+                <button class="btn-nav prev-week" disabled>&lt; Semana anterior</button>
+                <span class="week-indicator">Semana atual</span>
+                <button class="btn-nav next-week">Próxima semana &gt;</button>
+            </div>
             
-            <div class="service-info">
-                <p><strong>Duração:</strong> <?php echo $serviceData['duration']; ?> minutos</p>
-                <p><strong>Preço:</strong> R$ <?php echo number_format($serviceData['price'], 2, ',', '.'); ?></p>
-                <?php if ($serviceData['description']): ?>
-                    <p><strong>Descrição:</strong> <?php echo htmlspecialchars($serviceData['description']); ?></p>
-                <?php endif; ?>
-                <?php if ($serviceData['concurrent_capacity'] > 1): ?>
-                    <p><strong>Capacidade:</strong> <?php echo $serviceData['concurrent_capacity']; ?> atendimentos simultâneos</p>
-                <?php endif; ?>
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #e3f2fd;"></div>
+                    <span>Disponível</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #f5f5f5;"></div>
+                    <span>Indisponível</span>
+                </div>
             </div>
 
-            <?php if (isset($success)): ?>
-                <div class="alert alert-success"><?php echo $success; ?></div>
-            <?php endif; ?>
-
-            <?php if (isset($error)): ?>
-                <div class="alert alert-danger"><?php echo $error; ?></div>
-            <?php endif; ?>
-
-            <form method="POST" id="bookingForm">
-                <div class="form-group">
-                    <label for="client_name">Nome Completo</label>
-                    <input type="text" id="client_name" name="client_name" required>
+            <div class="days-grid">
+                <div class="day-button" data-day="0">
+                    <div class="day-name">Dom</div>
+                    <div class="day-number"></div>
                 </div>
-
-                <div class="form-group">
-                    <label for="client_email">Email</label>
-                    <input type="email" id="client_email" name="client_email" required>
+                <div class="day-button" data-day="1">
+                    <div class="day-name">Seg</div>
+                    <div class="day-number"></div>
                 </div>
-
-                <div class="form-group">
-                    <label for="client_phone">Telefone</label>
-                    <input type="tel" id="client_phone" name="client_phone" required>
+                <div class="day-button" data-day="2">
+                    <div class="day-name">Ter</div>
+                    <div class="day-number"></div>
                 </div>
-
-                <div class="form-group">
-                    <label for="date">Data</label>
-                    <input type="date" id="date" name="date" required min="<?php echo date('Y-m-d'); ?>">
+                <div class="day-button" data-day="3">
+                    <div class="day-name">Qua</div>
+                    <div class="day-number"></div>
                 </div>
-
-                <div class="form-group">
-                    <label for="time">Horário</label>
-                    <select id="time" name="time" required>
-                        <option value="">Selecione um horário</option>
-                    </select>
+                <div class="day-button" data-day="4">
+                    <div class="day-name">Qui</div>
+                    <div class="day-number"></div>
                 </div>
+                <div class="day-button" data-day="5">
+                    <div class="day-name">Sex</div>
+                    <div class="day-number"></div>
+                </div>
+                <div class="day-button" data-day="6">
+                    <div class="day-name">Sáb</div>
+                    <div class="day-number"></div>
+                </div>
+            </div>
 
-                <button type="submit" class="btn btn-primary">Confirmar Agendamento</button>
-            </form>
+            <div class="time-slots" style="display: none;"></div>
         </div>
+
+        <form method="POST" id="bookingForm" class="form-section">
+            <div class="form-group">
+                <label for="client_name">Nome Completo</label>
+                <input type="text" id="client_name" name="client_name" required>
+            </div>
+
+            <div class="form-group">
+                <label for="client_email">Email</label>
+                <input type="email" id="client_email" name="client_email" required>
+            </div>
+
+            <div class="form-group">
+                <label for="client_phone">Telefone</label>
+                <input type="tel" id="client_phone" name="client_phone" required>
+            </div>
+
+            <input type="hidden" id="selected_date" name="date">
+            <input type="hidden" id="selected_time" name="time">
+
+            <button type="submit" class="btn btn-primary">Confirmar Agendamento</button>
+        </form>
     </div>
 
     <script>
-    document.getElementById('date').addEventListener('change', async function() {
-        const date = this.value;
+    document.addEventListener('DOMContentLoaded', function() {
         const userId = <?php echo $serviceData['user_id']; ?>;
         const serviceId = <?php echo $serviceData['id']; ?>;
         const duration = <?php echo $serviceData['duration']; ?>;
-        const capacity = <?php echo $serviceData['concurrent_capacity']; ?>;
-        
-        try {
-            const response = await fetch(`get_available_times.php?date=${date}&user_id=${userId}&duration=${duration}&service_id=${serviceId}&capacity=${capacity}`);
-            const availableSlots = await response.json();
-            
-            const timeSelect = document.getElementById('time');
-            timeSelect.innerHTML = '<option value="">Selecione um horário</option>';
-            
-            if (!availableSlots || availableSlots.length === 0) {
-                timeSelect.innerHTML = '<option value="" disabled>Nenhum horário disponível nesta data</option>';
-                const alertDiv = document.createElement('div');
-                alertDiv.className = 'alert alert-danger';
-                alertDiv.textContent = 'Horário não disponível. Por favor, selecione outro horário.';
-                
-                // Remove alertas anteriores
-                const existingAlert = document.querySelector('.alert-danger');
-                if (existingAlert) {
-                    existingAlert.remove();
-                }
-                
-                timeSelect.parentNode.insertBefore(alertDiv, timeSelect);
-            } else {
-                // Remove alerta de erro se existir
-                const existingAlert = document.querySelector('.alert-danger');
-                if (existingAlert) {
-                    existingAlert.remove();
-                }
+        let currentWeekOffset = 0;
 
-                availableSlots.forEach(slot => {
-                    const option = document.createElement('option');
-                    option.value = slot;
-                    option.textContent = slot;
-                    timeSelect.appendChild(option);
-                });
+        function formatMonthName(month) {
+            const months = [
+                'Janeiro', 'Fevereiro', 'Março', 'Abril',
+                'Maio', 'Junho', 'Julho', 'Agosto',
+                'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+            ];
+            return months[month];
+        }
+
+        function getWeekDates(weekOffset = 0) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            // Pegar o primeiro dia da semana (Domingo)
+            let startOfWeek = new Date(today);
+            startOfWeek.setDate(today.getDate() - today.getDay()); // Volta para o domingo
+            
+            // Adicionar o offset de semanas
+            startOfWeek.setDate(startOfWeek.getDate() + (weekOffset * 7));
+            
+            let dates = [];
+            for (let i = 0; i < 7; i++) {
+                let date = new Date(startOfWeek);
+                date.setDate(startOfWeek.getDate() + i);
+                dates.push(date);
             }
-        } catch (error) {
-            console.error('Erro ao buscar horários:', error);
-            timeSelect.innerHTML = '<option value="" disabled>Erro ao carregar horários</option>';
+            
+            return dates;
         }
-    });
 
-    // Formatar telefone
-    document.getElementById('client_phone').addEventListener('input', function(e) {
-        let value = e.target.value.replace(/\D/g, '');
-        if (value.length > 11) value = value.slice(0, 11);
-        
-        if (value.length > 2) {
-            value = '(' + value.slice(0, 2) + ')' + value.slice(2);
+        function updateDayButtons(availableDays) {
+            const dates = getWeekDates(currentWeekOffset);
+            const dayButtons = document.querySelectorAll('.day-button');
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            dayButtons.forEach((button, index) => {
+                const date = dates[index];
+                const dayNumber = date.getDay();
+                const day = date.getDate();
+                const month = formatMonthName(date.getMonth());
+                
+                button.querySelector('.day-number').textContent = `${day} ${month}`;
+                button.dataset.date = date.toISOString().split('T')[0];
+                
+                button.classList.remove('available', 'unavailable', 'past-date', 'selected');
+                
+                if (date < today) {
+                    button.classList.add('unavailable', 'past-date');
+                } else if (availableDays.includes(dayNumber)) {
+                    button.classList.add('available');
+                } else {
+                    button.classList.add('unavailable');
+                }
+            });
+
+            document.querySelector('.prev-week').disabled = currentWeekOffset <= 0;
+            document.querySelector('.week-indicator').textContent = 
+                currentWeekOffset === 0 ? 'Semana atual' : 
+                `Semana de ${dates[0].getDate()} de ${formatMonthName(dates[0].getMonth())}`;
         }
-        if (value.length > 9) {
-            value = value.slice(0, 9) + '-' + value.slice(9);
+
+        function loadWeekAvailability() {
+            fetch(`get_weekly_availability.php?user_id=${userId}`)
+                .then(response => response.json())
+                .then(availableDays => {
+                    updateDayButtons(availableDays);
+                });
         }
-        e.target.value = value;
+
+        function loadAvailableTimeSlots(date) {
+            const timeSlotsContainer = document.querySelector('.time-slots');
+            const alertContainer = document.querySelector('.alert-danger');
+            if (alertContainer) alertContainer.remove();
+            
+            timeSlotsContainer.style.display = 'grid';
+            
+            fetch(`get_available_times.php?date=${date}&user_id=${userId}&service_id=${serviceId}&duration=${duration}`)
+                .then(response => response.json())
+                .then(slots => {
+                    timeSlotsContainer.innerHTML = '';
+                    
+                    // Filtrar horários se for hoje
+                    let availableSlots = slots;
+                    const now = new Date();
+                    const selectedDate = new Date(date);
+                    
+                    if (selectedDate.toDateString() === now.toDateString()) {
+                        const currentTime = now.getHours() * 60 + now.getMinutes(); // Converter para minutos
+                        
+                        availableSlots = slots.filter(time => {
+                            const [hours, minutes] = time.split(':').map(Number);
+                            const slotTime = hours * 60 + minutes; // Converter para minutos
+                            
+                            // Adicionar 30 minutos de margem ao horário atual
+                            return slotTime > (currentTime + 30);
+                        });
+                    }
+                    
+                    if (availableSlots.length === 0) {
+                        const alertDiv = document.createElement('div');
+                        alertDiv.className = 'alert alert-danger';
+                        alertDiv.textContent = 'Nenhum horário disponível nesta data.';
+                        timeSlotsContainer.parentNode.insertBefore(alertDiv, timeSlotsContainer);
+                        timeSlotsContainer.style.display = 'none';
+                        return;
+                    }
+                    
+                    availableSlots.forEach(time => {
+                        const slot = document.createElement('div');
+                        slot.className = 'time-slot';
+                        slot.textContent = time;
+                        slot.addEventListener('click', function() {
+                            document.querySelectorAll('.time-slot.selected').forEach(s => {
+                                s.classList.remove('selected');
+                            });
+                            this.classList.add('selected');
+                            document.getElementById('selected_time').value = time;
+                        });
+                        timeSlotsContainer.appendChild(slot);
+                    });
+                });
+        }
+
+        // Inicializar navegação entre semanas
+        document.querySelector('.prev-week').addEventListener('click', () => {
+            if (currentWeekOffset > 0) {
+                currentWeekOffset--;
+                loadWeekAvailability();
+            }
+        });
+
+        document.querySelector('.next-week').addEventListener('click', () => {
+            currentWeekOffset++;
+            loadWeekAvailability();
+        });
+
+        // Adicionar eventos de clique nos botões de dia
+        document.querySelectorAll('.day-button').forEach(button => {
+            button.addEventListener('click', function() {
+                if (this.classList.contains('unavailable')) return;
+                
+                document.querySelectorAll('.day-button.selected').forEach(btn => {
+                    btn.classList.remove('selected');
+                });
+                
+                this.classList.add('selected');
+                document.getElementById('selected_date').value = this.dataset.date;
+                loadAvailableTimeSlots(this.dataset.date);
+            });
+        });
+
+        // Formatação do telefone
+        document.getElementById('client_phone').addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length > 11) value = value.slice(0, 11);
+            
+            if (value.length > 2) {
+                value = '(' + value.slice(0, 2) + ')' + value.slice(2);
+            }
+            if (value.length > 9) {
+                value = value.slice(0, 9) + '-' + value.slice(9);
+            }
+            e.target.value = value;
+        });
+
+        // Validação do formulário
+        document.getElementById('bookingForm').addEventListener('submit', function(e) {
+            const date = document.getElementById('selected_date').value;
+            const time = document.getElementById('selected_time').value;
+
+            if (!date || !time) {
+                e.preventDefault();
+                alert('Por favor, selecione uma data e horário para o agendamento.');
+            }
+        });
+
+        // Inicializar a primeira semana
+        loadWeekAvailability();
     });
     </script>
 </body>

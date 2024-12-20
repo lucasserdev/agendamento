@@ -161,21 +161,16 @@ class Appointment {
         try {
             $dayOfWeek = date('w', strtotime($date));
             $availableSlots = [];
-
-            // 1. Buscar horários configurados para o dia
-            $availQuery = "SELECT start_time, end_time 
-                          FROM availability 
-                          WHERE user_id = :user_id 
-                          AND day_of_week = :day_of_week
-                          ORDER BY start_time";
-            
-            $availStmt = $this->conn->prepare($availQuery);
-            $availStmt->bindParam(":user_id", $user_id);
-            $availStmt->bindParam(":day_of_week", $dayOfWeek);
-            $availStmt->execute();
-            
-            $availablePeriods = $availStmt->fetchAll(PDO::FETCH_ASSOC);
-
+    
+            // 1. Instanciar Availability e buscar horários configurados para o dia
+            $availability = new Availability($this->conn);
+            $availablePeriods = $availability->getDayAvailability($user_id, $dayOfWeek);
+    
+            // Se não houver disponibilidade configurada para este dia, retorna array vazio
+            if (empty($availablePeriods)) {
+                return [];
+            }
+    
             // 2. Buscar agendamentos existentes para o dia
             $apptQuery = "SELECT start_time, end_time 
                          FROM " . $this->table . "
@@ -190,8 +185,8 @@ class Appointment {
             $apptStmt->execute();
             
             $bookedSlots = $apptStmt->fetchAll(PDO::FETCH_ASSOC);
-
-            // 3. Gerar slots disponíveis
+    
+            // 3. Gerar slots disponíveis baseados na disponibilidade configurada
             foreach ($availablePeriods as $period) {
                 $currentTime = strtotime($period['start_time']);
                 $endTime = strtotime($period['end_time']);
@@ -221,9 +216,9 @@ class Appointment {
                     $currentTime += 30 * 60; // Incremento de 30 minutos
                 }
             }
-
+    
             return $availableSlots;
-
+    
         } catch (PDOException $e) {
             error_log("Erro ao buscar horários disponíveis: " . $e->getMessage());
             return [];

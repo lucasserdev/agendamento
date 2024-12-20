@@ -30,34 +30,26 @@ $daysLeft = $user->getDaysUntilExpiration($_SESSION['user_id']);
 </div>
 
 <?php if ($daysLeft !== null && $daysLeft > 0): ?>
-    <div style="margin: 20px 0; padding: 15px; 
-        <?php if ($daysLeft <= 3): ?>
-            background-color: #f8d7da; 
-            color: #721c24; 
-            border: 1px solid #f5c6cb;
-        <?php elseif ($daysLeft <= 10): ?>
-            background-color: #fff3cd; 
-            color: #856404; 
-            border: 1px solid #ffeeba;
-        <?php else: ?>
-            background-color: #d4edda; 
-            color: #155724; 
-            border: 1px solid #c3e6cb;
-        <?php endif; ?> 
-        border-radius: 4px;">
-        <strong>Aviso!</strong> 
-        <?php if ($daysLeft <= 3): ?>
-            Atenção! Seu plano expira em <?php echo $daysLeft; ?> dias. 
-        <?php else: ?>
-            Seu plano expira em <?php echo $daysLeft; ?> dias. 
-        <?php endif; ?>
-        <a href="plans.php" style="color: #0056b3; text-decoration: underline;">Alterar plano</a>
+    <div class="plan-alert <?php 
+        if ($daysLeft <= 3) echo 'plan-alert-danger';
+        elseif ($daysLeft <= 10) echo 'plan-alert-warning';
+        else echo 'plan-alert-success';
+    ?>">
+        <div>
+            <strong>Aviso!</strong>
+            <?php if ($daysLeft <= 3): ?>
+                Atenção! Seu plano expira em <?php echo $daysLeft; ?> dias.
+            <?php else: ?>
+                Seu plano expira em <?php echo $daysLeft; ?> dias.
+            <?php endif; ?>
+        </div>
+        <a href="plans.php">Alterar plano</a>
     </div>
 <?php elseif ($daysLeft !== null && $daysLeft <= 0): ?>
-    <div style="margin: 20px 0; padding: 20px; background-color: #f8d7da; border: 2px solid #f5c6cb; border-radius: 4px;">
-        <h3 style="color: #721c24; margin-bottom: 10px;">Seu Plano Expirou!</h3>
-        <p style="color: #721c24; margin-bottom: 15px;">Para continuar utilizando todas as funcionalidades do sistema, escolha um novo plano.</p>
-        <a href="plans.php" class="btn btn-danger" style="background-color: #dc3545; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px; display: inline-block;">
+    <div class="plan-expired-alert">
+        <h3>Seu Plano Expirou!</h3>
+        <p>Para continuar utilizando todas as funcionalidades do sistema, escolha um novo plano.</p>
+        <a href="plans.php" class="btn btn-danger">
             Escolher Novo Plano
         </a>
     </div>
