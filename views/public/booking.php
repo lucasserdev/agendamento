@@ -44,7 +44,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ];
 
         if ($appointment->create($appointmentData)) {
-            $success = "Agendamento realizado com sucesso!";
+            $details = base64_encode(json_encode([
+                'service' => $serviceData['name'],
+                'date' => date('d/m/Y', strtotime($_POST['date'])),
+                'time' => $start_time,
+                'client_name' => $_POST['client_name']
+            ]));
+            
+            header("Location: success.php?details={$details}&user={$serviceData['user_id']}");
+            exit;
         } else {
             $error = "Erro ao realizar agendamento. Por favor, tente novamente.";
         }
